@@ -1,0 +1,8 @@
+node_modules/
+.pw-lms-profile/
+session.json
+.env
+.login_attempts
+logs/
+*.log
+.claude/
