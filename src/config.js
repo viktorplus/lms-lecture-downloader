@@ -49,7 +49,7 @@ const config = {
   LMS_EMAIL: getEnv('LMS_EMAIL', ''),
   LMS_PASSWORD: getEnv('LMS_PASSWORD', ''),
   LMS_BASE: getEnv('LMS_BASE', 'https://lms.itcareerhub.de').replace(/\/+$/, ''),
-  TARGET_ROOT: getEnv('TARGET_ROOT', 'E:/git/ich_pdf_lesson'),
+  TARGET_ROOT: getEnv('TARGET_ROOT', path.join(ROOT_DIR, 'downloads')),
   HEADLESS: toBool(getEnv('HEADLESS', 'true'), true),
 
   // Служебные пути (в .gitignore)
