@@ -16,7 +16,7 @@ function sanitizeName(value) {
 
 function normalizeCourseName(name) {
   let x = String(name || '');
-  x = x.replace(/^Название курса\s*/i, '');
+  x = x.replace(/^(Название курса|Kursname|Course name)\s*/i, '');
   x = x.replace(/\s*\(Free schedule\)/gi, '');
   x = x.split('/')[0];
   x = sanitizeName(x);
@@ -67,18 +67,36 @@ function isSameSubject(dirName, baseCourseName, courseId) {
   return false;
 }
 
+/**
+ * Чинит мохибейк, возникающий когда UTF-8 имя из HTTP-заголовка прочитано как
+ * latin1 (например «Конспект» → «ÐÐ¾Ð½ÑÐ¿ÐµÐºÑ»). Безопасно: трогает только
+ * строки, состоящие из latin1-символов (U+0080–U+00FF) и не содержащие уже
+ * «настоящего» Unicode (≥ U+0100). Если перекодировка невалидна — оставляет
+ * как есть. Корректные имена (кириллица, немецкое ü и т.п.) не меняются.
+ */
+function fixHeaderMojibake(value) {
+  const s = String(value || '');
+  if (!/[-ÿ]/.test(s)) return s; // нет «подозрительных» байт-символов
+  if (/[Ā-￿]/.test(s)) return s;  // уже есть настоящий Unicode — не трогаем
+  const bytes = Buffer.from(s, 'latin1');
+  const decoded = bytes.toString('utf8');
+  if (decoded.includes('�')) return s; // невалидный UTF-8 — оставляем
+  if (!Buffer.from(decoded, 'utf8').equals(bytes)) return s; // нет round-trip — оставляем
+  return decoded;
+}
+
 function parseFilenameFromDisposition(contentDisposition) {
   if (!contentDisposition) return null;
   const utf = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
   if (utf && utf[1]) {
     try {
-      return decodeURIComponent(utf[1]);
+      return decodeURIComponent(utf[1]); // %XX как UTF-8 — уже корректно
     } catch {
       return utf[1];
     }
   }
   const plain = contentDisposition.match(/filename="?([^";]+)"?/i);
-  if (plain && plain[1]) return plain[1];
+  if (plain && plain[1]) return fixHeaderMojibake(plain[1]);
   return null;
 }
 
@@ -92,4 +110,5 @@ module.exports = {
   uniqueFilePath,
   isSameSubject,
   parseFilenameFromDisposition,
+  fixHeaderMojibake,
 };
