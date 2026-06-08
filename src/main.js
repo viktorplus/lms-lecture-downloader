@@ -8,7 +8,27 @@ const { chromium } = require('playwright');
 const { ensureAuthenticated } = require('./auth');
 const { getMyCourses, getCourseActivities } = require('./lms');
 const { downloadResource, saveActivityHtml, downloadFolder } = require('./download');
-const { ensureDir, fileCount, sanitizeName, pad2 } = require('./utils');
+const fs = require('fs');
+const { ensureDir, fileCount, sanitizeName, pad2, isSameSubject } = require('./utils');
+
+/**
+ * Находит уже существующую папку предмета (в т.ч. со старым суффиксом _idNN),
+ * чтобы не плодить дубликаты. Если такой нет — возвращает «чистое» имя.
+ */
+function resolveSubjectFolder(targetRoot, course) {
+  let existing = [];
+  try {
+    existing = fs
+      .readdirSync(targetRoot, { withFileTypes: true })
+      .filter((e) => e.isDirectory())
+      .map((e) => e.name);
+  } catch {
+    /* папки ещё нет */
+  }
+  const match = existing.find((name) => isSameSubject(name, course.name, course.id));
+  if (match) return match;
+  return sanitizeName(course.normalized) || `course_id${course.id}`;
+}
 
 async function processSection(ctx, page, sectionPath, section, logger) {
   let saved = 0;
@@ -39,7 +59,7 @@ async function processSection(ctx, page, sectionPath, section, logger) {
 }
 
 async function processCourse(ctx, page, course, config, logger) {
-  const folderName = sanitizeName(course.normalized) || `course_id${course.id}`;
+  const folderName = resolveSubjectFolder(config.TARGET_ROOT, course);
   const subjectPath = path.join(config.TARGET_ROOT, folderName);
   ensureDir(subjectPath);
 
