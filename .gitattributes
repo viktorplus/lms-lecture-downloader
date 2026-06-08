@@ -1,0 +1,14 @@
+# Нормализация переводов строк: в репозитории — LF, в рабочей копии — как в ОС.
+* text=auto
+
+# Явно текстовые файлы
+*.js   text
+*.json text
+*.md   text
+*.env.example text
+
+# Бинарные артефакты (на всякий случай)
+*.pdf  binary
+*.mp4  binary
+*.png  binary
+*.jpg  binary
